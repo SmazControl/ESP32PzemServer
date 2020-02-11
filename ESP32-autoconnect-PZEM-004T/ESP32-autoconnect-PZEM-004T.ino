@@ -1,3 +1,4 @@
+// Original code https://github.com/mqu/esp32-pzem-004t
 // HardwareSerial PzemSerial2(2);     // Use hwserial UART2 at pins IO-16 (RX2) and IO-17 (TX2)
 // #include <HardwareSerial.h>
 #include <PZEM004T.h>
