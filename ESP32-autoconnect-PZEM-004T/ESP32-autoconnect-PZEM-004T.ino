@@ -21,6 +21,7 @@ IPAddress ip(192,168,1,1);
 #include <WiFi.h>
 #include <WebServer.h>
 #endif
+#include <HTTPClient.h>
 #include <time.h>
 #include <AutoConnect.h>
 
@@ -105,16 +106,23 @@ void volt() {
 void voltage() {
   char buffer[30];
   buffer = volt();
-  Serial.println(buffer);
+  Serial.println(buffer+"A");
   Server.send(200, "text/txt", buffer);
 }
 
-void current() {
+void amp() {
   char buffer[30];
   float v = pzem.current(ip);
   if (v < 0.0) v = 0.0;
-  sprintf(buffer, "%0.3fA\n", v);
-  Serial.println(buffer);
+  sprintf(buffer, "%0.3f", v);
+  return buffer;
+}
+
+
+void current() {
+  char buffer[30];
+  buffer = amp();
+  Serial.println(buffer+"A");
   Server.send(200, "text/txt", buffer);
 }
 
@@ -165,9 +173,9 @@ void rootPage() {
 
 void blink(int count, int _delay=180){
     for(int i=0;i<count;i++){
-       digitalWrite(22, HIGH);
+       digitalWrite(2, HIGH);
        delay(_delay);
-       digitalWrite(22, LOW);
+       digitalWrite(2, LOW);
        delay(_delay);
     }
 }
@@ -185,7 +193,7 @@ void setup() {
   // ADC_MODE(ADC_VCC);  // not available for ESP32
 
   // initialize digital pin LED_BUILTIN as an output.
-  pinMode(22, OUTPUT);
+  pinMode(2, OUTPUT);
 
   // PZEM
   Serial2.begin(9600);
@@ -231,8 +239,25 @@ void loop() {
     blink(2,30);
 
   if(count%600000==0) {
-    Serial.print(volt());
-    Serial.println("V");
+    char v[30];
+    v = volt()
+    Serial.println(v+"V");
+    a = amp()
+    Serial.println(a+"Amp");  
+    HTTPClient http;
+    Serial.print("[HTTP] begin...\n");
+    http.begin("http://smaz.peacock.work/pzem.php?v="+v+"&a="+a);
+    Serial.print("[HTTP] GET...\n");
+    int httpCode = http.GET();
+    if (httpCode > 0) {
+      if (httpCode == HTTP_CODE_OK) {
+        String payload = http.getString();
+        Serial.println(payload);        
+      }
+    } else {
+      Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+    }
+    http.end();    
   }
   yield();
 }
